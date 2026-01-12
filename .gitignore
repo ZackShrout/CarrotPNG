@@ -1,0 +1,8 @@
+build*/
+cmake-build-*/
+*.cmake
+CMakeCache.txt
+CMakeFiles/
+install/
+.idea/
+CARROT_PNG_MASTER_PLAN.txt
