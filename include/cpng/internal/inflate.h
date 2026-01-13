@@ -10,6 +10,8 @@
 #include <vector>
 #include <print>
 
+#include "defilter.h"
+
 namespace cpng {
     [[nodiscard]] constexpr decode_error concat_idat(
         std::span<const std::span<const uint8_t>> idat_spans,
@@ -28,10 +30,16 @@ namespace cpng {
         return decode_error::ok;
     }
 
+
+
     [[nodiscard]] constexpr decode_error inflate_idat(
         std::span<const uint8_t> zlib_data, // full concatenated IDAT
         std::vector<uint8_t>& out_decompressed,
-        const uint32_t expected_size // height * (width * bpp/8 + 1)
+        const uint32_t expected_size, // height * (width * bpp/8 + 1)
+        uint32_t width,
+        uint32_t height,
+        uint8_t bit_depth,
+        uint8_t color_type
     ) noexcept
     {
         if (zlib_data.size() < 6) return decode_error::invalid_idat_stream;
@@ -252,6 +260,10 @@ namespace cpng {
         // {
         //     std::println("Note: {} bytes after deflate end (ignored)", remaining);
         // }
+
+        const decode_error defilter_err{ defilter_scanlines(out_decompressed, width, height, bit_depth, color_type) };
+
+        if (defilter_err != decode_error::ok) return defilter_err;
 
         return decode_error::ok;
     }
