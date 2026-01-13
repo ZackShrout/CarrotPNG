@@ -31,8 +31,8 @@ namespace cpng {
         if (bit_depth != 8) return decode_error::unsupported_bit_depth;
         if (color_type != 2 && color_type != 6) return decode_error::unsupported_color_type;
 
-        const uint32_t bpp = (color_type == 6) ? 4 : 3;
-        const uint32_t row_bytes = 1 + width * bpp; // filter + pixels
+        const uint32_t bpp{ static_cast<uint32_t>(color_type == 6 ? 4 : 3) };
+        const uint32_t row_bytes{ 1 + width * bpp }; // filter + pixels
 
         if (data.size() != height * row_bytes) return decode_error::invalid_idat_stream;
 
@@ -40,9 +40,9 @@ namespace cpng {
 
         for (uint32_t y = 0; y < height; ++y)
         {
-            uint8_t* row = data.data() + y * row_bytes;
-            uint8_t filter = row[0];
-            uint8_t* pixels = row + 1; // pixels start right after filter byte
+            uint8_t* row{ data.data() + y * row_bytes };
+            const uint8_t filter{ row[0] };
+            uint8_t* pixels{ row + 1 }; // pixels start right after the filter byte
 
             if (filter == 0) // none
             {
@@ -50,40 +50,40 @@ namespace cpng {
             }
             else if (filter == 1) // sub
             {
-                for (uint32_t x = bpp; x < width * bpp; ++x)
+                for (uint32_t x{ bpp }; x < width * bpp; ++x)
                 {
                     pixels[x] += pixels[x - bpp];
                 }
             }
             else if (filter == 2) // up
             {
-                for (uint32_t x = 0; x < width * bpp; ++x)
+                for (uint32_t x{ 0 }; x < width * bpp; ++x)
                 {
                     pixels[x] += prior_row[x];
                 }
             }
             else if (filter == 3) // average
             {
-                for (uint32_t x = 0; x < width * bpp; ++x)
+                for (uint32_t x{ 0 }; x < width * bpp; ++x)
                 {
-                    uint8_t left = (x >= bpp) ? pixels[x - bpp] : 0;
+                    const uint8_t left{ static_cast<uint8_t>(x >= bpp ? pixels[x - bpp] : 0) };
                     pixels[x] += static_cast<uint8_t>((left + prior_row[x]) / 2);
                 }
             }
             else if (filter == 4) // paeth
             {
-                for (uint32_t x = 0; x < width * bpp; ++x)
+                for (uint32_t x{ 0 }; x < width * bpp; ++x)
                 {
-                    uint8_t a = (x >= bpp) ? pixels[x - bpp] : 0;
-                    uint8_t b = prior_row[x];
-                    uint8_t c = (x >= bpp) ? prior_row[x - bpp] : 0;
+                    uint8_t a{ static_cast<uint8_t>(x >= bpp ? pixels[x - bpp] : 0) };
+                    uint8_t b{ prior_row[x] };
+                    uint8_t c{ static_cast<uint8_t>(x >= bpp ? prior_row[x - bpp] : 0) };
 
-                    int p = static_cast<int>(a) + b - c;
-                    int pa = std::abs(p - static_cast<int>(a));
-                    int pb = std::abs(p - static_cast<int>(b));
-                    int pc = std::abs(p - static_cast<int>(c));
+                    const int p{ static_cast<int>(a) + b - c };
+                    const int pa{ std::abs(p - static_cast<int>(a)) };
+                    const int pb{ std::abs(p - static_cast<int>(b)) };
+                    const int pc{ std::abs(p - static_cast<int>(c)) };
 
-                    uint8_t predictor = (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
+                    const uint8_t predictor{ pa <= pb && pa <= pc ? a : pb <= pc ? b : c };
                     pixels[x] += predictor;
                 }
             }
@@ -100,9 +100,9 @@ namespace cpng {
         std::vector<uint8_t> clean;
         clean.reserve(height * width * bpp);
 
-        for (uint32_t y = 0; y < height; ++y)
+        for (uint32_t y{ 0 }; y < height; ++y)
         {
-            const uint8_t* row = data.data() + y * row_bytes;
+            const uint8_t* row{ data.data() + y * row_bytes };
             clean.insert(clean.end(), row + 1, row + 1 + width * bpp);
         }
 

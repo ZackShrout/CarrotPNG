@@ -28,23 +28,23 @@ namespace cpng {
 
     // Just read header (width/height/etc) without decompressing
     [[nodiscard]] constexpr decode_error read_header_from_memory(
-        std::span<const uint8_t> data,
+        const std::span<const uint8_t> data,
         uint32_t& out_width,
         uint32_t& out_height,
         uint8_t& out_bit_depth,
         uint8_t& out_color_type
     ) noexcept
     {
-        ihdr_info_t ihdr{};
+        ihdr_info_t ihdr{ };
         std::vector<std::span<const uint8_t>> dummy_idat; // not used
 
-        auto err = cpng::parse_png_chunks(data, ihdr, dummy_idat);
+        decode_error err{ parse_png_chunks(data, ihdr, dummy_idat) };
         if (err != decode_error::ok) return err;
 
         if (!ihdr.valid) return decode_error::missing_ihdr;
 
-        out_width     = ihdr.width;
-        out_height    = ihdr.height;
+        out_width = ihdr.width;
+        out_height = ihdr.height;
         out_bit_depth = ihdr.bit_depth;
         out_color_type = ihdr.color_type;
 
@@ -52,15 +52,15 @@ namespace cpng {
     }
 
     [[nodiscard]] constexpr decode_error load_from_memory(
-        std::span<const uint8_t> data,
+        const std::span<const uint8_t> data,
         image_view_t& out_view,
         std::vector<uint8_t>& out_pixel_storage
     ) noexcept
     {
-        cpng::ihdr_info_t ihdr{};
+        ihdr_info_t ihdr{ };
         std::vector<std::span<const uint8_t>> idat_spans;
 
-        auto err = cpng::parse_png_chunks(data, ihdr, idat_spans);
+        decode_error err{ parse_png_chunks(data, ihdr, idat_spans) };
         if (err != decode_error::ok) return err;
 
         if (!ihdr.valid) return decode_error::missing_ihdr;
@@ -70,28 +70,29 @@ namespace cpng {
             return decode_error::unsupported_color_type;
 
         std::vector<uint8_t> idat_concat;
-        err = cpng::concat_idat(idat_spans, idat_concat);
+        err = concat_idat(idat_spans, idat_concat);
         if (err != decode_error::ok) return err;
 
-        int bytes_per_pixel = (ihdr.color_type == 6) ? 4 : 3;  // MVP: only 2 and 6
-        uint32_t row_bytes = 1 + ihdr.width * bytes_per_pixel;
-        uint32_t expected_raw_size = ihdr.height * row_bytes;
+        const int bytes_per_pixel{ ihdr.color_type == 6 ? 4 : 3 }; // MVP: only 2 and 6
+        const uint32_t row_bytes{ 1 + ihdr.width * bytes_per_pixel };
+        const uint32_t expected_raw_size{ ihdr.height * row_bytes };
 
         std::vector<uint8_t> decompressed;
-        err = inflate_idat(idat_concat, decompressed, expected_raw_size, ihdr.width, ihdr.height, ihdr.bit_depth, ihdr.color_type);
+        err = inflate_idat(idat_concat, decompressed, expected_raw_size, ihdr.width, ihdr.height, ihdr.bit_depth,
+                           ihdr.color_type);
         if (err != decode_error::ok) return err;
 
         // After inflate + defilter, decompressed is now clean RGBA
-        uint32_t stride = ihdr.width * ((ihdr.color_type == 6) ? 4 : 3);
+        const uint32_t stride{ ihdr.width * ((ihdr.color_type == 6) ? 4 : 3) };
 
         out_pixel_storage = std::move(decompressed);
 
         out_view = {
-            .width        = ihdr.width,
-            .height       = ihdr.height,
-            .pixels       = out_pixel_storage,
+            .width = ihdr.width,
+            .height = ihdr.height,
+            .pixels = out_pixel_storage,
             .stride_bytes = stride,
-            .is_srgb      = true   // placeholder — later read sRGB chunk
+            .is_srgb = true // placeholder — later read sRGB chunk
         };
 
         return decode_error::ok;
@@ -104,19 +105,17 @@ namespace cpng {
     ) noexcept
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file.is_open()) return decode_error::file_not_found;  // add this enum entry if needed
+        if (!file.is_open()) return decode_error::file_not_found;
 
-        std::streamsize size = file.tellg();
+        const std::streamsize size{ file.tellg() };
         file.seekg(0, std::ios::beg);
 
         std::vector<uint8_t> buffer(static_cast<size_t>(size));
-        if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+        if (!file.read(reinterpret_cast<char *>(buffer.data()), size))
             return decode_error::file_too_short;
 
         return load_from_memory(buffer, out_view, out_pixel_storage);
     }
-
-
 
     // Human-readable error string
     [[nodiscard]] constexpr std::string_view to_string(const decode_error err) noexcept
