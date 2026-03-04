@@ -3,7 +3,6 @@
 // Copyright (c) 2026 BunnySoft. All rights reserved.
 //
 
-#define CPNG_IMPLEMENTATION
 #include <cpng/CarrotPNG.h>
 
 #include <fstream>
