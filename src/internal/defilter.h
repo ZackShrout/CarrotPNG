@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "types.h"
-
 #include <vector>
 #include <algorithm>
 
@@ -20,13 +18,9 @@ namespace cpng {
      *
      * Returns ok on success, or error code on unsupported format/filter/corruption.
      */
-    [[nodiscard]] inline decode_error defilter_scanlines(
-        std::vector<uint8_t>& data,
-        const uint32_t width,
-        const uint32_t height,
-        const uint8_t bit_depth,
-        const uint8_t color_type
-    ) noexcept
+    [[nodiscard]] inline decode_error defilter_scanlines(std::vector<uint8_t>& data, const uint32_t width,
+                                                         const uint32_t height, const uint8_t bit_depth,
+                                                         const uint8_t color_type) noexcept
     {
         if (bit_depth != 8) return decode_error::unsupported_bit_depth;
         if (color_type != 2 && color_type != 6) return decode_error::unsupported_color_type;
@@ -38,7 +32,7 @@ namespace cpng {
 
         std::vector<uint8_t> prior_row(width * bpp, 0); // previous reconstructed pixels
 
-        for (uint32_t y = 0; y < height; ++y)
+        for (uint32_t y{ 0 }; y < height; ++y)
         {
             uint8_t* row{ data.data() + y * row_bytes };
             const uint8_t filter{ row[0] };

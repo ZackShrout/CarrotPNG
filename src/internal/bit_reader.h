@@ -49,17 +49,19 @@ namespace cpng {
 
         void align_to_byte() noexcept
         {
-            bit_buffer = 0;
-            bits_in_buffer = 0;
+            // Discard only the low bits to reach the next byte boundary (DEFLATE spec).
+            const uint32_t drop{ bits_in_buffer & 7u };
+            bit_buffer >>= drop;
+            bits_in_buffer -= drop;
         }
     };
 
     [[nodiscard]] constexpr uint32_t bit_reverse(uint32_t v, int bits) noexcept
     {
-        v = ((v & 0xAAAAu) >> 1) | ((v & 0x5555u) << 1);
-        v = ((v & 0xCCCCu) >> 2) | ((v & 0x3333u) << 2);
-        v = ((v & 0xF0F0u) >> 4) | ((v & 0x0F0Fu) << 4);
-        v = ((v & 0xFF00u) >> 8) | ((v & 0x00FFu) << 8);
+        v = (v & 0xAAAAu) >> 1 | (v & 0x5555u) << 1;
+        v = (v & 0xCCCCu) >> 2 | (v & 0x3333u) << 2;
+        v = (v & 0xF0F0u) >> 4 | (v & 0x0F0Fu) << 4;
+        v = (v & 0xFF00u) >> 8 | (v & 0x00FFu) << 8;
         return v >> (16 - bits);
     }
 } // namespace cpng

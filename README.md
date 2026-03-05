@@ -1,81 +1,348 @@
-# CarrotPNG - Pure From-Scratch PNG Decoder 🥕
+# CarrotPNG 🥕
 
-A clean, single-header (mostly), dependency-free PNG decoder written in modern C++23, designed specifically for game engines that want full control over asset loading.
+![C++23](https://img.shields.io/badge/C%2B%2B-23-blue)
+![Build](https://img.shields.io/badge/build-CMake-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Dependencies](https://img.shields.io/badge/dependencies-none-success)
 
-No zlib, no libpng, no stb_image - just pure, readable code with from-scratch inflate (RFC 1951 fixed + dynamic Huffman, LZ77 window), CRC32, chunk parsing, filtering reversal, Adam7 deinterlacing, and RGBA8 output.
+## Quick Start
 
-Built to integrate seamlessly with the Carrot Game Engine's asset/hot-reload system, custom allocators, and CarrotHLM math types (future SIMD de-filtering paths).
-
-### Features (Current & Planned)
-
-**MVP (in progress):**
-- Full PNG signature + chunk parsing with CRC32 validation
-- IHDR parsing + strict validation (color types, bit depths, compression/filter/interlace)
-- Collection of IDAT chunks (ready for inflate)
-- Error reporting with detailed codes
-
-**Phase 1 Goals (Month 4–6 Carrot engine milestone):**
-- From-scratch deflate/inflate implementation (no external inflate!)
-- Scanline de-filtering (sub, up, average, Paeth)
-- Color type expansion -> always 8-bit straight RGBA8 output
-- tRNS transparency handling
-- Palette (indexed) -> RGBA
-- Grayscale / grayscale+alpha -> RGBA
-- Adam7 interlacing full support
-- Basic metadata exposure (sRGB flag, gamma, pHYs ppm)
-
-**Future Polish:**
-- Allocator-aware loading (pass your own arena)
-- Hot-reload callbacks / partial reload support
-- SIMD-accelerated de-filtering using CarrotHLM vector types
-- Streaming/progressive decode (for very large textures)
-- Optional 16-bit support
-
-### Why CarrotPNG?
-
-- **Zero runtime dependencies** - matches Carrot engine philosophy
-- **Full control** - own the code, debug easily, extend for hot-reload
-- **Educational & fun** - inflate was written from scratch for maximum dopamine
-- **Carrot-branded** - namespace `cpng`, feels like home alongside `chlm`
-- **Lean & safe** - modern C++23 (`[[nodiscard]]`, `noexcept`, `std::span`, uniform init), no raw pointers where avoidable
-- **Tested correctness** - aiming for pixel-perfect output vs reference PNG suite
-
-### Requirements
-- **Compiler**: Clang 15+ recommended (C++23 features, consistent vector extensions if we add SIMD later)
-- GCC 12+ should work; MSVC untested (but recommend clang-cl)
-- C++23 standard library (`<span>`, `<optional>`, `<vector>`, etc.)
-### Integration (Git Submodule Recommended)
+Add CarrotPNG to your project:
 
 ```bash
-git submodule add https://github.com/YOUR_USERNAME/CarrotPNG deps/CarrotPNG
+git submodule add https://github.com/YOUR_USERNAME/CarrotPNG external/CarrotPNG
 ```
 
-In your CMakeLists.txt:
 ```cmake
-add_subdirectory(deps/CarrotPNG)
+add_subdirectory(external/CarrotPNG)
 target_link_libraries(your_engine PRIVATE CarrotPNG::CarrotPNG)
 ```
 
-Then simply:
-```cpp
+Decode a PNG file:
+
+```c++
 #include <cpng/CarrotPNG.h>
 
-using namespace cpng;
+cpng::image_view_t image{ };
+std::vector<uint8_t> pixels;
 
-image_view_t view{};
-std::vector<u8> pixel_storage;
+auto err{ cpng::load_from_file("texture.png", image, pixels) };
 
-auto err = load_from_file("assets/textures/awesome.png", view, pixel_storage);
-if (err == decode_error::ok)
+if (err == cpng::decode_error::ok)
 {
-    // upload view.pixels (RGBA8, row-major) to Vulkan texture
+    // image.width
+    // image.height
+    // pixels -> RGBA8
 }
 ```
-### Current Status
-- Chunk parser + CRC32 table + signature check working
-- IHDR parsing & basic validation implemented
-- IDAT spans collected
-- Next: full inflate implementation (bit reader → fixed Huffman → dynamic Huffman → LZ77)
 
-CarrotPNG: Because your engine deserves a PNG loader that speaks Carrot. 🥕
+CarrotPNG outputs **straight RGBA8 pixel buffers ready for GPU upload**.
 
+---
+
+**CarrotPNG is a clean, dependency-free PNG decoder written entirely from scratch in modern C++23.**
+
+CarrotPNG is a lightweight PNG decoder designed for game engines and tools that want **full control over asset loading** without relying on large external libraries.
+
+No `libpng`  
+No `zlib`  
+No `stb_image`
+
+Everything — including **DEFLATE (RFC1951)** — is implemented from scratch.
+
+The decoder outputs **RGBA8 pixel buffers ready for GPU upload**.
+
+Originally built for the **Carrot Game Engine**, but fully standalone and easy to integrate into any CMake project.
+
+---
+
+# Contents
+
+- [Features](#features)
+- [Design Goals](#design-goals)
+- [Status](#status)
+- [Requirements](#requirements)
+- [Integration](#integration)
+- [Basic Usage](#basic-usage)
+- [Output Format](#output-format)
+- [Repository Layout](#repository-layout)
+- [Testing](#testing)
+- [Why Not stb_image?](#why-not-stb_image)
+- [License](#license)
+
+---
+
+# Features
+
+### PNG Parsing
+
+- PNG signature validation
+- Chunk parsing with **CRC32 verification**
+- Strict **IHDR validation**
+- Multi-chunk **IDAT handling**
+
+### From-Scratch DEFLATE
+
+Complete implementation of the PNG compression pipeline:
+
+- Bit-level reader
+- Fixed Huffman decoding
+- Dynamic Huffman decoding
+- Canonical Huffman table builder
+- LZ77 sliding window reconstruction
+- Zlib header validation
+- Adler-32 verification
+
+### Image Reconstruction
+
+- PNG scanline **de-filtering**
+    - None
+    - Sub
+    - Up
+    - Average
+    - Paeth
+- **Adam7 interlacing**
+- Color conversion to **8-bit RGBA**
+
+Supported input formats:
+
+| PNG Color Type | Supported |
+|----------------|-----------|
+| Grayscale | ✓ |
+| RGB | ✓ |
+| Indexed (Palette) | ✓ |
+| Grayscale + Alpha | ✓ |
+| RGBA | ✓ |
+
+### Transparency
+
+- `tRNS` chunk support for palette, grayscale, and RGB images
+
+---
+
+# Design Goals
+
+CarrotPNG follows a few simple principles.
+
+### Zero Dependencies
+
+No external compression libraries or image loaders.
+
+### Engine-Friendly
+
+Simple API, predictable allocations, and easy integration into custom asset pipelines.
+
+### Readable Implementation
+
+The code prioritizes **clarity and debuggability** over extreme micro-optimization.
+
+### Modern C++
+
+Uses modern language features including:
+
+- `std::span`
+- `std::optional`
+- `[[nodiscard]]`
+- `noexcept`
+- `std::print`
+- C++23 standard library
+
+---
+
+# Status
+
+CarrotPNG currently implements the **full PNG decoding pipeline**:
+
+- PNG signature + chunk parsing
+- CRC validation
+- DEFLATE (fixed + dynamic Huffman)
+- LZ77 reconstruction
+- scanline de-filtering
+- Adam7 interlacing
+- color expansion to RGBA8
+
+The library is considered **stable for engine integration**.
+
+Future improvements may include:
+
+- SIMD-accelerated de-filtering
+- allocator-aware decoding
+- progressive/streaming decoding for large textures
+- optional 16-bit support
+
+---
+
+# Requirements
+
+- **CMake 3.20+**
+- **C++23 compiler**
+
+Recommended:
+
+- Clang 15+
+- GCC 12+
+
+MSVC should work but has not been heavily tested.
+
+---
+
+# Integration
+
+The easiest way to integrate CarrotPNG is with **git submodules**.
+
+```bash
+git submodule add https://github.com/YOUR_USERNAME/CarrotPNG external/CarrotPNG
+```
+
+Then in your `CMakeLists.txt`:
+
+```cmake
+add_subdirectory(external/CarrotPNG)
+
+target_link_libraries(your_engine
+    PRIVATE
+    CarrotPNG::CarrotPNG
+)
+```
+
+CarrotPNG exposes the CMake target:
+
+```cmake
+CarrotPNG::CarrotPNG
+```
+
+Include the header:
+
+```c++
+#include <cpng/CarrotPNG.h>
+```
+
+---
+# Basic Usage
+
+CarrotPNG exposes a **simple decode API** that reads PNG files and outputs
+a contiguous RGBA8 pixel buffer ready for GPU upload.
+
+```c++
+#include <cpng/CarrotPNG.h>
+
+cpng::image_view_t image{ };
+std::vector<uint8_t> pixels;
+
+auto err{ cpng::load_from_file(
+    "assets/textures/example.png",
+    image,
+    pixels
+) };
+
+if (err != cpng::decode_error::ok)
+{
+    // handle error
+}
+
+// image.width
+// image.height
+// image.pixels -> RGBA8 data
+```
+
+The pixel buffer is stored in the provided vector.
+
+---
+
+# Output Format
+
+All decoded images are returned as:
+
+| Property     | Value                        |
+| ------------ | ---------------------------- |
+| Pixel Format | RGBA                         |
+| Bit Depth    | 8-bit per channel            |
+| Layout       | Row-major                    |
+| Alpha        | Straight (not premultiplied) |
+
+This makes the result directly usable for GPU uploads in APIs like:
+- Vulkan
+- DirectX
+- Metal
+- OpenGL
+
+---
+
+# Repository Layout
+
+```text
+CarrotPNG
+├─ include/
+│  └─ cpng/
+│     └─ CarrotPNG.h
+│
+├─ src/
+│  ├─ CarrotPNG.cpp
+│  └─ internal/
+│     ├─ bit_reader.h
+│     ├─ chunk_parser.h
+│     ├─ crc32.h
+│     ├─ defilter.h
+│     ├─ fixed_tables.h
+│     ├─ huffman.h
+│     └─ inflate.h
+│
+├─ test/
+│  └─ validation suite
+│
+└─ CMakeLists.txt
+```
+
+---
+
+# Testing
+
+CarrotPNG includes a validation test executable.
+
+To enable tests when building the library directly:
+
+```bash
+cmake -DCARROTPNG_BUILD_TESTS=ON ..
+```
+
+Then run:
+
+```bash
+ctest
+```
+
+Tests are disabled automatically when the project is included as a submodule.
+
+---
+
+# Why Not stb_image?
+
+Libraries like `stb_image` are fantastic.
+
+CarrotPNG exists for cases where you want:
+- zero external dependencies
+- full control over the decoder
+- the ability to debug and extend the implementation
+- educational value in understanding PNG and DEFLATE
+
+The implementation aims to remain approachable and readable, making it easy to modify for custom engine needs.
+
+---
+
+# License
+
+MIT License.
+
+---
+
+# Carrot Ecosystem
+
+CarrotPNG is part of the growing **Carrot Ecosystem**:
+
+- **CarrotPNG** - PNG decoding
+- **CarrotHLM** - high-level math library
+- **Carrot Engine** - the game engine
+
+---
+
+🥕 **CarrotPNG — because your engine deserves a PNG loader that speaks Carrot.**

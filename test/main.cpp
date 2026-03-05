@@ -59,10 +59,8 @@ void print_image_as_colored_blocks(
 
 int main()
 {
-    // const char* path = CARROTPNG_SOURCE_DIR "/reference_pngs/16x16orange.png";
+    const char* path = CARROTPNG_SOURCE_DIR "/reference_pngs/16x16orange.png";
     // const char* path = CARROTPNG_SOURCE_DIR "/reference_pngs/1x1orange.png";
-    const char* path = CARROTPNG_SOURCE_DIR "/reference_pngs/Vraden.png";
-
 
     cpng::image_view_t view;
     std::vector<uint8_t> pixels;
@@ -92,7 +90,7 @@ int main()
         view.pixels,
         view.width,
         view.height,
-        80 // adjust to your terminal width
+        80 // adjust to terminal width
     );
 
     return 0;

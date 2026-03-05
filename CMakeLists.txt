@@ -5,10 +5,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Don't force compilers in CMakeLists; let the toolchain decide
-# set(CMAKE_C_COMPILER clang)
-# set(CMAKE_CXX_COMPILER clang++)
-
 add_library(CarrotPNG STATIC
         src/CarrotPNG.cpp
 )

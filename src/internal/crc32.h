@@ -55,6 +55,7 @@ namespace cpng {
     {
         uint32_t crc = init_crc;
         crc = crc32_update(crc, data);
+
         return crc32_finalize(crc);
     }
 } // namespace cpng
