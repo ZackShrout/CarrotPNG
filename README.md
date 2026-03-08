@@ -191,7 +191,7 @@ MSVC should work but has not been heavily tested.
 The easiest way to integrate CarrotPNG is with **git submodules**.
 
 ```bash
-git submodule add https://github.com/YOUR_USERNAME/CarrotPNG external/CarrotPNG
+git submodule add https://github.com/ZackShrout/CarrotPNG external/CarrotPNG
 ```
 
 Then in your `CMakeLists.txt`:
