@@ -10,7 +10,7 @@
 Add CarrotPNG to your project:
 
 ```bash
-git submodule add https://github.com/YOUR_USERNAME/CarrotPNG external/CarrotPNG
+git submodule add https://github.com/ZackShrout/CarrotPNG external/CarrotPNG
 ```
 
 ```cmake
